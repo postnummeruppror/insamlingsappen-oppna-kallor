@@ -1,6 +1,7 @@
 package nu.postnummeruppror.insamlingsappen.sources.valmyndigheten;
 
 import net.sf.saxon.lib.NamespaceConstant;
+import nu.postnummeruppror.insamlingsappen.client.Application;
 import nu.postnummeruppror.insamlingsappen.client.CreateLocationSample;
 import nu.postnummeruppror.insamlingsappen.client.SetAccount;
 import org.apache.commons.io.IOUtils;
@@ -47,6 +48,9 @@ public class ImportRostningslokaler {
     setAccount.setFirstName("Valmyndigheten");
     setAccount.setFirstName("Förtidsröstningslokaler 2014");
     setAccount.run();
+    if (!setAccount.getSuccess()) {
+      throw new RuntimeException(setAccount.getFailureMessage(), setAccount.getFailureException());
+    }
 
     new ImportRostningslokaler().importXml(setAccount.getIdentity(), "http://www.val.se/val/val2014/rostmottagning/fortidsrostning/rostlokal.xml");
   }
@@ -97,7 +101,11 @@ public class ImportRostningslokaler {
           Node röstningslokalNode = röstningslokalNodes.item(röstningslokalIndex);
 
           CreateLocationSample createLocationSample = new CreateLocationSample();
-
+          createLocationSample.setAccountIdentity(accountIdentity);
+          createLocationSample.setApplication(getClass().getName());
+          createLocationSample.setApplicationVersion(Application.version);
+          createLocationSample.setAccuracy(50d); // todo detta är en vild gissning på hur illa de kan stå, men primärt är vi ute efter postort så det är ok.
+          createLocationSample.setProvider(URL);
 
           String gatuAdress = röstningslokalNode.getAttributes().getNamedItem("ADRESS2").getTextContent();
           if (!gatuAdress.isEmpty()) {
@@ -130,6 +138,11 @@ public class ImportRostningslokaler {
 
 
             createLocationSample.run();
+
+            if (!createLocationSample.getSuccess()) {
+              log.error(createLocationSample.getFailureMessage(), createLocationSample.getFailureException());
+            }
+
 
             System.currentTimeMillis();
 
